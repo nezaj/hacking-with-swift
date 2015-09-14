@@ -1,0 +1,5 @@
+# Personal Xcode stuff
+xcuserdata
+
+# OSX stuff
+.DS_Store
