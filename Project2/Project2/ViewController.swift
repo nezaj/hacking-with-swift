@@ -13,7 +13,9 @@ class ViewController: UIViewController {
     @IBOutlet weak var button1: UIButton!
     @IBOutlet weak var button2: UIButton!
     @IBOutlet weak var button3: UIButton!
-    
+
+    @IBOutlet weak var scoreLabel: UILabel!
+
     var countries = [
         "estonia",
         "france",
@@ -41,6 +43,7 @@ class ViewController: UIViewController {
     
     func playGame(action: UIAlertAction! = nil) {
         drawFlags()
+        drawScore()
         askQuestion()
     }
     
@@ -53,25 +56,23 @@ class ViewController: UIViewController {
         }
     }
     
+    func drawScore() {
+        scoreLabel.text = "Score: \(score)"
+    }
+
     func askQuestion() {
         correctAnswer = Int(arc4random_uniform(3))
         title = countries[correctAnswer].uppercaseString
     }
     
     @IBAction func buttonTapped(sender: UIButton) {
-        var title: String
-        
         if sender.tag == correctAnswer {
-            title = "Correct"
             ++score
         } else {
-            title = "Wrong"
             --score
         }
         
-        let ac = UIAlertController(title: title, message: "Your score is \(score).", preferredStyle: .Alert)
-        ac.addAction(UIAlertAction(title: "Continue", style: .Default, handler: playGame))
-        presentViewController(ac, animated: true, completion: nil)
+        playGame()
     }
     
 
