@@ -14,6 +14,8 @@ class MasterViewController: UITableViewController {
     var allWords = [String]()
 
 
+    // MARK: Built-ins
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
@@ -21,6 +23,29 @@ class MasterViewController: UITableViewController {
             target: self, action: "promptForAnswer")
         initAllWords()
         startGame()
+    }
+    
+    override func didReceiveMemoryWarning() {
+        super.didReceiveMemoryWarning()
+        // Dispose of any resources that can be recreated.
+    }
+    
+    // MARK: Business logic
+    
+    func initAllWords() {
+        if let startWordsPath = NSBundle.mainBundle().pathForResource("start", ofType: "txt") {
+            do {
+                let startWords = try NSString(contentsOfFile: startWordsPath, usedEncoding: nil)
+                allWords = startWords.componentsSeparatedByString("\n")
+                print("Using words from '\(startWordsPath)'")
+            } catch _ as NSError {
+                print("Error reading '\(startWordsPath)' using default words instead")
+                allWords = useDefaultWords()
+            }
+        } else {
+            print("Could not find words file, using default words instead")
+            allWords = useDefaultWords()
+        }
     }
     
     func promptForAnswer() {
@@ -36,31 +61,53 @@ class MasterViewController: UITableViewController {
         presentViewController(ac, animated: true, completion: nil)
     }
     
+    func showErrorMessage(alertTitle: String, alertMessage: String) {
+        let ac = UIAlertController(title: alertTitle, message: alertMessage, preferredStyle: .Alert)
+        ac.addAction(UIAlertAction(title: "OK", style: .Default, handler: nil))
+        presentViewController(ac, animated: true, completion: nil)
+    }
+    
+    func startGame() {
+        allWords.shuffle()
+        title = allWords[0]
+        objects.removeAll(keepCapacity: true)
+        tableView.reloadData()
+    }
+    
     func submitAnswer(answer: String) {
         let lowerAnswer = answer.lowercaseString
+        let original = title!.lowercaseString
         
-        if wordIsPossible(lowerAnswer, original: allWords[0]) {
-            if wordIsOriginal(lowerAnswer) {
-                if wordIsReal(lowerAnswer) {
-                    objects.insert(answer, atIndex: 0)
-                    
-                    let indexPath = NSIndexPath(forRow: 0, inSection: 0)
-                    tableView.insertRowsAtIndexPaths([indexPath], withRowAnimation: .Automatic)
-                } else {
-                    let ac = UIAlertController(title: "Word not recognised", message: "You can't just make them up, you know!", preferredStyle: .Alert)
-                    ac.addAction(UIAlertAction(title: "OK", style: .Default, handler: nil))
-                    presentViewController(ac, animated: true, completion: nil)
-                }
-            } else {
-                let ac = UIAlertController(title: "Word used already", message: "Be more original!", preferredStyle: .Alert)
-                ac.addAction(UIAlertAction(title: "OK", style: .Default, handler: nil))
-                presentViewController(ac, animated: true, completion: nil)
-            }
-        } else {
-            let ac = UIAlertController(title: "Word not possible", message: "You can't spell that word from '\(title!.lowercaseString)'!", preferredStyle: .Alert)
-            ac.addAction(UIAlertAction(title: "OK", style: .Default, handler: nil))
-            presentViewController(ac, animated: true, completion: nil)
+        if lowerAnswer == original {
+            return showErrorMessage("Original word used!",
+                alertMessage: "You can't use the original word as your answer!")
         }
+        
+        if !wordIsPossible(lowerAnswer, original: original) {
+            return showErrorMessage("Word not possible",
+                alertMessage: "You can't spell '\(lowerAnswer)' from '\(title!.lowercaseString)'!")
+        }
+        
+        if !wordIsOriginal(lowerAnswer) {
+            return showErrorMessage("Word used already", alertMessage: "Be more original!")
+        }
+        
+        if !wordIsReal(lowerAnswer) {
+            return showErrorMessage("Word not recognized", alertMessage: "You can't just make them up you know!")
+        }
+        
+        objects.insert(answer, atIndex: 0)
+        
+        let indexPath = NSIndexPath(forRow: 0, inSection: 0)
+        tableView.insertRowsAtIndexPaths([indexPath], withRowAnimation: .Automatic)
+    }
+    
+    func useDefaultWords() -> [String] {
+        return ["silkworm"]
+    }
+    
+    func wordIsOriginal(word: String) -> Bool {
+        return !objects.contains(word)
     }
     
     func wordIsPossible(word: String, original: String) -> Bool {
@@ -86,41 +133,17 @@ class MasterViewController: UITableViewController {
         return true
     }
     
-    func wordIsOriginal(word: String) -> Bool {
-        return !objects.contains(word)
-    }
-    
     func wordIsReal(word: String) -> Bool {
+        // Small words not allowed!
+        if word.characters.count < 3 {
+            return false
+        }
+        
         let checker = UITextChecker()
         let range = NSMakeRange(0, word.characters.count)
         let misspelledRange = checker.rangeOfMisspelledWordInString(word, range: range, startingAt: 0, wrap: false, language: "en")
         
         return misspelledRange.location == NSNotFound
-    }
-    
-    func initAllWords () {
-        if let startWordsPath = NSBundle.mainBundle().pathForResource("start", ofType: "txt") {
-                do {
-                    let startWords = try NSString(contentsOfFile: startWordsPath, usedEncoding: nil)
-                    allWords = startWords.componentsSeparatedByString("\n")
-                } catch let error as NSError {
-                    print(error)
-                }
-        } else {
-            allWords = ["silkwork"]
-        }
-    }
-    
-    func startGame() {
-        allWords.shuffle()
-        title = allWords[0]
-        objects.removeAll(keepCapacity: true)
-        tableView.reloadData()
-    }
-
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
     }
 
     // MARK: - Table View
@@ -141,4 +164,3 @@ class MasterViewController: UITableViewController {
     }
 
 }
-
